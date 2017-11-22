@@ -1,0 +1,73 @@
+#!/bin/bash
+#############
+#Author: whbakus
+#This is a simple nagios plugin to monitoring the disk usage percentage, when you are working inside LXC container on proxmox.
+#It is based on	df command to gather info about	disk and awk to	manipulate output.
+#
+#Inside LXC container the disk info is misaligned from inside and outside container.
+#For example for  my LXC container from host I read (from lvs command):
+#  vm-101-disk-1 LSize:36.00g Data% 68.99
+# this values are in Gib (Gibibyte)
+#From inside container with dh command I read:
+# Filesystem: /dev/mapper/pve-vm--101--disk--1 Size 38G Use% 51%
+# and this values are in more useful format GB (Gigabyte). I need this values!
+# 
+#
+#
+###########
+
+awk=/bin/awk
+warning_th=$1
+critical_th=$2
+
+
+function calc() {
+warning_th=$1
+critical_th=$2
+
+mounted_on=$(df -Hl | awk '/pve-vm/ {print $6}')
+echo $mounted_on
+use=$(df -Hl  | awk '/pve-vm/ {print substr($5,1, length($5)-1)}')
+Avail=$(df -Hl  | awk '/pve-vm/ {print $4}')
+Used=$(df -Hl  | awk '/pve-vm/ {print $3}')
+Size=$(df -Hl  | awk '/pve-vm/ {print $2}')
+
+if [ "$use" -gt "$critical_th" ]; then
+  echo "SERVICE Critical: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
+  exit 2
+fi
+
+if [ "$use" -gt "$warning_th" ]; then
+  echo "SERVICE Warning: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
+  exit 1
+fi 
+if [ "$use" -lt "$warning_th" ]; then
+ echo "SERVICE OK: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
+ exit 0
+fi
+}
+#condition warning_th < critical_th
+#is warning if Used > warning_th
+#is critical if Used > critical_th
+#is OK if Used < warning_th
+
+while getopts w:c: option
+do 
+case "${option}"
+in
+c) critical_th=${OPTARG};;
+w) warning_th=${OPTARG};;
+esac
+done
+
+if [ $warning_th -gt $critical_th ] || [ $warning_th -gt 100 ] || [ $critical_th -gt 100 ]
+then
+	echo "Error passing params"
+	echo "Usage: check_disk_on_lxc -w 70 -c 90"
+	echo "-w warning threshold -c critical threshold"
+	echo "the thresholds's value is comparised with disk's usage percets"
+	exit 1
+else
+   calc  $warning_th $critical_th
+fi
+
