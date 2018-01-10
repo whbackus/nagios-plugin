@@ -32,25 +32,26 @@ Avail=$(df -Hl  | awk '/pve-vm/ {print $4}')
 Used=$(df -Hl  | awk '/pve-vm/ {print $3}')
 Size=$(df -Hl  | awk '/pve-vm/ {print $2}')
 
-if [ "$use" -gt "$critical_th" ]; then
+if [ "$use" -ge "$critical_th" ]; then
   echo "SERVICE Critical: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
   exit 2
 fi
 
-if [ "$use" -gt "$warning_th" ]; then
+if [ "$use" -ge "$warning_th" -o "$use" -le "$warning_th" ]; then
   echo "SERVICE Warning: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
   exit 1
-fi 
+fi
+if [ "$use" -eq "$warning_th" ]; then
+ echo "SERVICE Warning: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
+ exit 0
+fi
+
 if [ "$use" -lt "$warning_th" ]; then
  echo "SERVICE OK: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
  exit 0
 fi
-}
-#condition warning_th < critical_th
-#is warning if Used > warning_th
-#is critical if Used > critical_th
-#is OK if Used < warning_th
 
+}
 while getopts w:c: option
 do 
 case "${option}"
