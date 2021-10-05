@@ -11,10 +11,7 @@
 #From inside container with dh command I read:
 # Filesystem: /dev/mapper/pve-vm--101--disk--1 Size 38G Use% 51%
 # and this values are in more useful format GB (Gigabyte). I need this values!
-# 
-#
-#
-###########
+# ###########
 
 awk=/bin/awk
 warning_th=$1
@@ -37,7 +34,7 @@ if [ "$use" -ge "$critical_th" ]; then
   exit 2
 fi
 
-if [ "$use" -ge "$warning_th" -o "$use" -le "$warning_th" ]; then
+if [ "$use" -ge "$warning_th" -o "$use" -le "$critical_th" ]; then
   echo "SERVICE Warning: Mounted: $mounted_on - Total Size: $Size - Used: $Used - Avail: $Avail - %Used: $use"
   exit 1
 fi
